@@ -1,6 +1,6 @@
 'use strict';
 
-var chai        = require('chai'),
+let chai        = require('chai'),
     expect      = require('chai').expect,
 //    fs          = require('fs'),
     gulp        = require('gulp'),
@@ -15,9 +15,9 @@ chai.use(require('chai-fs'));
 
 
 describe('gulp-nwabap-ui5uploader', function () {
-    var opts;
+    let opts;
 
-    var fixtures = function (glob) {
+    let fixtures = function (glob) {
         return path.join(__dirname, 'webapp', glob);
     };
 
@@ -148,7 +148,7 @@ describe('gulp-nwabap-ui5uploader', function () {
         it('should not throw any exception', function (done) {
             this.timeout(20000);
 
-            var config = path.resolve('test/test-config.json');
+            let config = path.resolve('test/test-config.json');
             expect(config).to.be.a.file('Please create with options to use.').with.json;
 
             opts = require(config);
@@ -166,7 +166,7 @@ describe('gulp-nwabap-ui5uploader', function () {
         it('should not throw any exception', function (done) {
             this.timeout(20000);
 
-            var config = path.resolve('test/test-config.json');
+            let config = path.resolve('test/test-config.json');
             expect(config).to.be.a.file('Please create with options to use.').with.json;
 
             opts = require(config);

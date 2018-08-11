@@ -1,8 +1,12 @@
 {
   "extends": "defaults/configurations/gulp",
+  "env": {
+      "es6": true
+  },
   "rules": {
     "space-after-keywords": 0,
     "keyword-spacing": 2,
-    "max-len": 0
+    "max-len": 0,
+    "no-var": "error"
   }
 }
