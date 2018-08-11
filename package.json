@@ -3,14 +3,17 @@
   "version": "0.4.2",
   "description": "Deploying a SAPUI5/OpenUI5 file structure to SAP NetWeaver ABAP via ADT (ABAP Devbeloper Tools) using a gulp task",
   "keywords": [
-    "gulpplugin",
     "ui5",
+    "openui5",
+    "sapui5",
+    "gulpplugin",
     "netweaver",
-    "SAP",
-    "deploy",
-    "deployment"
+    "SAP"
   ],
   "author": "ILC GmbH <opensource@ilc-solutions.de>",
+  "contributors": [
+    "Benedikt Kromer <benedikt.kromer@berncon.com>"
+  ],
   "license": "MIT",
   "homepage": "https://github.com/ilcgmbh/gulp-nwabap-ui5uploader",
   "bugs": {
