@@ -2,7 +2,7 @@
 
 const path        = require('path');
 const through     = require('through2');
-const PluginError = require('gulp-util').PluginError;
+const PluginError = require('plugin-error');
 
 const Filestore   = require('./lib/filestore');
 const Transports = require('./lib/transports');
