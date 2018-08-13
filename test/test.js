@@ -1,13 +1,11 @@
 'use strict';
 
-let chai        = require('chai'),
-    expect      = require('chai').expect,
-//    fs          = require('fs'),
-    gulp        = require('gulp'),
-    gutils      = require('gulp-util'),
-//    PassThrough = require('stream').PassThrough,
-    path        = require('path'),
-    ui5uploader = require('../index');
+const chai        = require('chai');
+const expect      = require('chai').expect;
+const gulp        = require('gulp');
+const path        = require('path');
+const ui5uploader = require('../index');
+const log = require('fancy-log');
 
 require('mocha');
 
@@ -171,13 +169,13 @@ describe('gulp-nwabap-ui5uploader', function () {
 
             opts = require(config);
 
-            gutils.log('Preparing:');
+            log('Preparing:');
             gulp.src(fixtures('**/*.html'))
                 .pipe(ui5uploader(opts))
                 .on('end', function() {
 
 
-                    gutils.log('Modifying:');
+                    log('Modifying:');
                     gulp.src([fixtures('**/*'), '!**/view/*'])
                         .pipe(ui5uploader(opts))
                         .on('end', function () {

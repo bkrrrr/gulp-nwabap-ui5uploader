@@ -177,6 +177,6 @@ Note: This only works with team repository provider version 1.30.x or higher and
 > IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 > CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Parts of this work (filestore.js, filestoreutils.js) are derived from
+Parts of this work (filestore.js, filestoreutils.js, adt_client.js, transports.js) are derived from
 [grunt-nwabap-ui5uploader](https://github.com/pfefferf/grunt-nwabap-ui5uploader).
 These parts are originally licensed under the Apache-2.0 license by Florian Pfeffer.

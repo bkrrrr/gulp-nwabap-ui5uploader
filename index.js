@@ -1,80 +1,35 @@
 'use strict';
 
-const path        = require('path');
-const through     = require('through2');
+const path = require('path');
+const through = require('through2');
 const PluginError = require('plugin-error');
 
-const Filestore   = require('./lib/filestore');
+const Filestore = require('./lib/filestore');
 const Transports = require('./lib/transports');
 
 // Constants
 const PLUGIN_NAME = 'gulp-nwabap-ui5uploader';
 
-function stream(options){
-    let sources = [];
-    let cwd = options.root ? path.resolve(options.root) : process.cwd();
-    return through.obj(
-        // Transform
-        function (file, enc, done) {
-            if (file.isStream()) {
-                this.emit(
-                    'error',
-                    new PluginError(PLUGIN_NAME, 'Streams are not supported!')
-                );
-            }
 
-            if (path.relative(cwd, file.path).indexOf('..') === 0) {
-                this.emit(
-                    'error',
-                    new PluginError(PLUGIN_NAME, 'Source contains paths outside of root')
-                );
-            }
-
-            sources.push(file);
-            done(null, file);
-        },
-
-        // Flush
-        function (done) {
-            let store = new Filestore(options);
-            let me = this;
-
-            sources = sources.filter(function(source) {
-                return !source.isNull();
-            });
-
-            let s = sources.map(function(source) {
-                return path.relative(cwd, source.path).replace(/\\/g, '/') || '.';
-            });
-
-            store.syncFiles(s, cwd, function (error) {
-                if (error) {
-                    me.emit('error', new PluginError(PLUGIN_NAME, error));
-                }
-
-                done();
-            });
-        }
-    );
-}
-
-function checkTransportForUpload(oTransportManager, options){
+function checkTransportForUpload(oTransportManager, options) {
     if (options.ui5.create_transport === true) {
-        oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text, function (oError, sTransportNo) {
-            if (oError) {
-                throw new PluginError(PLUGIN_NAME, 'No transport configured but create transport and user match was disabled!');
-            }
-            options.ui5.transportno = sTransportNo;
-            return stream(options);
+        return new Promise(function (resolve, reject) {
+            oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text, function (oError, sTransportNo) {
+                if (oError) {
+                    throw new PluginError(PLUGIN_NAME, 'No transport configured but create transport and user match was disabled!');
+                }
+                options.ui5.transportno = sTransportNo;
+                resolve(stream(options));
+            });
         });
     } else {
         throw new PluginError(PLUGIN_NAME, 'No transport configured but create transport and user match was disabled!');
     }
 }
 
-module.exports = function (options) {
+async function handle(options) {
     if (typeof options !== 'object') {
-            throw new PluginError(PLUGIN_NAME, 'options must be an object');
+        throw new PluginError(PLUGIN_NAME, 'options must be an object');
     }
 
     if (!options.auth || !options.auth.user || !options.auth.pwd) {
@@ -85,7 +40,7 @@ module.exports = function (options) {
         throw new PluginError(PLUGIN_NAME, '"conn" option not (fully) specified (check server).');
     }
 
-    if (!options.conn.hasOwnProperty('useStrictSSL')){
+    if (!options.conn.hasOwnProperty('useStrictSSL')) {
         options.conn.useStrictSSL = true;
     }
 
@@ -113,22 +68,85 @@ module.exports = function (options) {
 
 
     // check transport
-    if (options.ui5.package !== '$TMP' && options.ui5.transportno === undefined) {
+    if (options.ui5.package !== '$TMP' && !options.ui5.transportno) {
         let oTransportManager = new Transports(options);
         if (options.ui5.transport_use_user_match) {
-            oTransportManager.determineExistingTransport(options.ui5.transport_text, function (oError, sTransportNo) {
-                if (sTransportNo) {
-                    options.ui5.transportno = sTransportNo;
-                    return stream();
-                 } else {
-                    return checkTransportForUpload(oTransportManager,options);
-                }
+            options.ui5.transportno = await new Promise(function(resolve, reject) {
+                oTransportManager.determineExistingTransport(options.ui5.transport_text,(error, tr)=>{
+                    resolve(tr);
+                });
             });
-
+            if (options.ui5.transportno) {
+                return options;
+            } else {
+                options.ui5.transportno = await new Promise(function(resolve, reject) {
+                    oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text,(error, tr)=>{
+                        resolve(tr);
+                    });
+                });
+                return options;
+            }
         } else {
-            return checkTransportForUpload(oTransportManager, options);
+            options.ui5.transportno = await new Promise(function(resolve, reject) {
+                oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text,(error, tr)=>{
+                    resolve(tr);
+                });
+            });
+            return options;
         }
     } else {
-        return stream(options);
+        return options;
     }
 };
+
+
+function stream(options) {
+    const promise = handle(options);
+    let sources = [];
+    let cwd = options.root ? path.resolve(options.root) : process.cwd();
+    return through.obj(
+        // Transform
+        function (file, enc, done) {
+            Promise.resolve(promise).then((_options) => {
+                if (file.isStream()) {
+                    this.emit('error', new PluginError(PLUGIN_NAME, 'Streams are not supported!'));
+                }
+
+                if (path.relative(cwd, file.path).indexOf('..') === 0) {
+                    this.emit('error', new PluginError(PLUGIN_NAME, 'Source contains paths outside of root'));
+                }
+
+                sources.push(file);
+                done(null, file);
+            }).catch((e) => {
+                this.emit('error', new PluginError(PLUGIN_NAME, e));
+            });
+        },
+
+        // Flush
+        function (done) {
+            Promise.resolve(promise).then((_options) => {
+                let store = new Filestore(_options);
+                let me = this;
+
+                sources = sources.filter(function (source) {
+                    return !source.isNull();
+                });
+
+                let s = sources.map(function (source) {
+                    return path.relative(cwd, source.path).replace(/\\/g, '/') || '.';
+                });
+
+                store.syncFiles(s, cwd, function (error) {
+                    if (error) {
+                        me.emit('error', new PluginError(PLUGIN_NAME, error));
+                    }
+                    done();
+                });
+            });
+        }
+    );
+}
+
+
+module.exports = stream;
