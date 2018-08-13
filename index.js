@@ -10,24 +10,7 @@ const Transports = require('./lib/transports');
 // Constants
 const PLUGIN_NAME = 'gulp-nwabap-ui5uploader';
 
-
-function checkTransportForUpload(oTransportManager, options) {
-    if (options.ui5.create_transport === true) {
-        return new Promise(function (resolve, reject) {
-            oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text, function (oError, sTransportNo) {
-                if (oError) {
-                    throw new PluginError(PLUGIN_NAME, 'No transport configured but create transport and user match was disabled!');
-                }
-                options.ui5.transportno = sTransportNo;
-                resolve(stream(options));
-            });
-        });
-    } else {
-        throw new PluginError(PLUGIN_NAME, 'No transport configured but create transport and user match was disabled!');
-    }
-}
-
-async function handle(options) {
+async function processor(options) {
     if (typeof options !== 'object') {
         throw new PluginError(PLUGIN_NAME, 'options must be an object');
     }
@@ -71,29 +54,17 @@ async function handle(options) {
     if (options.ui5.package !== '$TMP' && !options.ui5.transportno) {
         let oTransportManager = new Transports(options);
         if (options.ui5.transport_use_user_match) {
-            options.ui5.transportno = await new Promise(function(resolve, reject) {
-                oTransportManager.determineExistingTransport(options.ui5.transport_text,(error, tr)=>{
-                    resolve(tr);
-                });
-            });
-            if (options.ui5.transportno) {
-                return options;
-            } else {
-                options.ui5.transportno = await new Promise(function(resolve, reject) {
-                    oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text,(error, tr)=>{
-                        resolve(tr);
-                    });
-                });
-                return options;
-            }
-        } else {
-            options.ui5.transportno = await new Promise(function(resolve, reject) {
-                oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text,(error, tr)=>{
-                    resolve(tr);
-                });
-            });
-            return options;
+            options.ui5.transportno = await oTransportManager.determineExistingTransport();
         }
+
+        if (!options.ui5.transportno && options.ui5.create_transport) {
+            options.ui5.transportno = await oTransportManager.createTransport(options.ui5.package, options.ui5.transport_text);
+        }
+
+        if (options.ui5.create_transport === true && typeof options.ui5.transport_text !== 'string') {
+            throw new PluginError(PLUGIN_NAME, 'No transport configured, but create transport and user match was disabled/unsuccessful!');
+        }
+
     } else {
         return options;
     }
@@ -101,13 +72,13 @@ async function handle(options) {
 
 
 function stream(options) {
-    const promise = handle(options);
+    const promise = processor(options);
     let sources = [];
     let cwd = options.root ? path.resolve(options.root) : process.cwd();
     return through.obj(
         // Transform
         function (file, enc, done) {
-            Promise.resolve(promise).then((_options) => {
+            Promise.resolve(promise).then(() => {
                 if (file.isStream()) {
                     this.emit('error', new PluginError(PLUGIN_NAME, 'Streams are not supported!'));
                 }
