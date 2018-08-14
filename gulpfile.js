@@ -1,11 +1,11 @@
-'use strict';
+const gulp  = require('gulp');
+const clear = require('clear');
+const mocha   = require('gulp-mocha');
+const jshint  = require('gulp-jshint');
+const eslint  = require('gulp-eslint');
 
-var gulp    = require('gulp'),
-    gutil   = require('gulp-util'),
-    clear   = require('clear'),
-    mocha   = require('gulp-mocha'),
-    jshint  = require('gulp-jshint'),
-    eslint  = require('gulp-eslint');
+const log = require('fancy-log');
+const c = require('ansi-colors');
 
 gulp.task('eslint', function () {
     gulp.src(['*.js', 'test/*.js', 'lib/*.js'])
@@ -24,7 +24,7 @@ gulp.task('lint', ['eslint', 'jshint']);
 gulp.task('test', function () {
     gulp.src('test/*.js', { read: false })
         .pipe(mocha({ reporter: 'spec' }))
-        .on('error', gutil.log);
+        .on('error', log);
 });
 
 gulp.task('default', ['lint', 'test']);
@@ -32,6 +32,6 @@ gulp.task('default', ['lint', 'test']);
 gulp.task('dev', function() {
     gulp.watch(['**/*.js', '!node_modules/**'], ['lint', 'test'], function(event) {
         clear();
-        gutil.log(gutil.colors.cyan(event.path.replace(process.cwd(), '')) + ' ' + event.type + '. (' + gutil.colors.magenta(gutil.date('HH:MM:ss')) + ')');
+        log(c.cyan(event.path.replace(process.cwd(), '')) + ' ' + event.type + '. (' + c.magenta(gutil.date('HH:MM:ss')) + ')');
     });
 });
